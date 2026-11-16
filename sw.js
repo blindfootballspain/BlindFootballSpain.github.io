@@ -1,5 +1,5 @@
 /* Web de ligas: funciona sin conexión con los últimos datos descargados. */
-const CACHE = 'ligas-v2';
+const CACHE = 'ligas-v3';
 const BASE = ['./', 'index.html', 'liga.css', 'liga.js', 'icono.svg', 'manifest.webmanifest', 'liga-core.js', 'logo.png'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) =>
@@ -11,7 +11,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET' || (new URL(req.url).origin !== location.origin && !esDatos)) return;
   const clave = req.url.split('?')[0];
   e.respondWith(
-    fetch(req)
+    (req.mode === 'navigate' ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req, { cache: 'no-cache' }))
       .then((r) => {
         if (r.ok) {
           const copia = r.clone();
