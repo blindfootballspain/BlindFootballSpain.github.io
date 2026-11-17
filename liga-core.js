@@ -26,15 +26,19 @@
 
   const jugado = (r) => r && r.estado === 'jugado' && r.gl !== '' && r.gv !== '' && r.gl != null && r.gv != null;
 
-  /** Clasificación de un grupo. Desempate: puntos, enfrentamientos directos (puntos, diferencia, goles), diferencia general, goles a favor. */
+  /**
+   * Clasificación de un grupo, o de todos juntos con grupoId '*'.
+   * Desempate: puntos, enfrentamientos directos (puntos, diferencia, goles), diferencia general, goles a favor.
+   */
   function clasificacion(liga, torneo, grupoId) {
     const P = liga.puntos || { victoria: 3, empate: 1, derrota: 0 };
+    const todos = grupoId === '*' || torneo.grupos.length === 1;
     const filas = {};
     torneo.equipos
-      .filter((e) => e.grupo === grupoId || torneo.grupos.length === 1)
-      .forEach((e) => (filas[e.id] = { id: e.id, nombre: e.nombre, corto: e.corto || e.nombre, pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0, pts: 0, forma: [] }));
+      .filter((e) => todos || e.grupo === grupoId)
+      .forEach((e) => (filas[e.id] = { id: e.id, nombre: e.nombre, corto: e.corto || e.nombre, grupo: e.grupo, pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0, pts: 0, forma: [] }));
     const jugados = partidos(torneo)
-      .filter((p) => !p.eliminatoria && (p.comp === grupoId || torneo.grupos.length === 1))
+      .filter((p) => !p.eliminatoria && (todos || p.comp === grupoId))
       .map((p) => ({ p, r: liga.resultados[p.id] }))
       .filter(({ p, r }) => jugado(r) && filas[p.local] && filas[p.visitante])
       .sort((a, b) => (a.p.fecha || '').localeCompare(b.p.fecha || '') || a.p.jornada - b.p.jornada);

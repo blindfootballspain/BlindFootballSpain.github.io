@@ -1,6 +1,6 @@
 /* Web de ligas: funciona sin conexión con los últimos datos descargados. */
-const CACHE = 'ligas-v3';
-const BASE = ['./', 'index.html', 'liga.css', 'liga.js', 'icono.svg', 'manifest.webmanifest', 'liga-core.js', 'logo.png'];
+const CACHE = 'ligas-v8';
+const BASE = ['./', 'index.html', 'liga.css', 'liga.js', 'icono.svg', 'logo-f5.png', 'logo-fs1.png', 'logo-fs2.png', 'manifest.webmanifest', 'liga-core.js', 'logo.png'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) =>
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('ligas-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()))
