@@ -1,5 +1,5 @@
 /* Web de ligas: funciona sin conexión con los últimos datos descargados. */
-const CACHE = 'ligas-v8';
+const CACHE = 'ligas-v9';
 const BASE = ['./', 'index.html', 'liga.css', 'liga.js', 'icono.svg', 'logo-f5.png', 'logo-fs1.png', 'logo-fs2.png', 'manifest.webmanifest', 'liga-core.js', 'logo.png'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) =>

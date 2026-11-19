@@ -349,7 +349,7 @@
       'button.partido',
       { type: 'button', onclick: () => fichaPartido(t, p, j) },
       grupo || lugar || (r && r.nota) ? el('div.meta', grupo ? el('span.chip', grupo) : null, el('span.lugar', lugar), r && r.nota ? el('span.chip.chip-amarillo', 'Nota') : null) : null,
-      el('div.duelo', el('span.eq.l' + cl(r && r.gl, r && r.gv), nombreEq(t, p.local)), centro, el('span.eq' + cl(r && r.gv, r && r.gl), nombreEq(t, p.visitante)))
+      el('div.duelo', el('span.eq.l' + cl(r && r.gl, r && r.gv) + (p.local ? '' : '.tbd'), nombreEq(t, p.local)), centro, el('span.eq' + cl(r && r.gv, r && r.gl) + (p.visitante ? '' : '.tbd'), nombreEq(t, p.visitante)))
     );
   }
 
@@ -373,7 +373,8 @@
         )
       );
     if (!lista.length) tarjeta.append(el('div.vacio', el('b', 'Todavía no hay goles registrados'), 'Aparecerán en cuanto se publiquen las primeras actas.'));
-    else
+    else {
+      const maximo = Math.max(...lista.map((g) => g.goles)) || 1;
       tarjeta.append(
         el(
           'ol.gol-lista',
@@ -381,12 +382,18 @@
             el(
               'li' + (g.pos === 1 ? '.top' : ''),
               el('span.p', g.pos === 1 ? el('span', '1') : g.pos),
-              el('span.n', el('b', g.nombre), el('small', nombreEq(t, g.equipo) + ' · ' + g.partidos + (g.partidos === 1 ? ' partido con gol' : ' partidos con gol'))),
+              el(
+                'span.n',
+                el('b', g.nombre),
+                el('small', nombreEq(t, g.equipo) + ' · ' + g.partidos + (g.partidos === 1 ? ' partido con gol' : ' partidos con gol')),
+                el('span.gol-barra', { 'aria-hidden': 'true' }, el('i', { style: `width:${Math.round((g.goles / maximo) * 100)}%` }))
+              ),
               el('span.g', { 'aria-label': g.goles + (g.goles === 1 ? ' gol' : ' goles') }, g.goles)
             )
           )
         )
       );
+    }
     v.append(tarjeta);
   }
 
@@ -415,9 +422,9 @@
       el('div.hoja-cab', el('small', [t.corto, grupo, j.nombre].filter(Boolean).join(' · ')), el('h2#hoja-titulo', ok ? 'Resultado final' : r && r.estado ? 'Partido ' + r.estado : 'Próximo partido')),
       el(
         'div.hoja-duelo',
-        el('div.eq', nombreEq(t, p.local)),
+        el('div.eq' + (p.local ? '' : '.tbd'), nombreEq(t, p.local)),
         ok ? el('div.marcador', `${r.gl} – ${r.gv}`) : el('div.marcador.pend', p.hora || 'vs'),
-        el('div.eq', nombreEq(t, p.visitante))
+        el('div.eq' + (p.visitante ? '' : '.tbd'), nombreEq(t, p.visitante))
       ),
       ok && (r.goles.length || (r.pp && (r.pp.local || r.pp.visitante)))
         ? el('div.hoja-sec', el('h3', 'Goles'), el('div.goles-2', lista(p.local, r.pp && r.pp.local), lista(p.visitante, r.pp && r.pp.visitante)))
@@ -448,7 +455,7 @@
     abrirHoja(
       el('div.hoja-cab', el('small', [t.corto, grupo].filter(Boolean).join(' · ')), el('h2#hoja-titulo', e.nombre)),
       fila
-        ? el('div.hoja-sec', el('div.stats', el('div', el('b', fila.pos + 'º'), el('small', 'Posición')), el('div', el('b', fila.pts), el('small', 'Puntos')), el('div', el('b', `${fila.g}-${fila.e}-${fila.p}`), el('small', 'G-E-P')), el('div', el('b', `${fila.gf}:${fila.gc}`), el('small', 'Goles'))))
+        ? el('div.hoja-sec', el('div.stats', el('div', el('b', fila.pos + 'º'), el('small', 'Posición')), el('div', el('b', fila.pts), el('small', 'Puntos')), el('div', el('b', `${fila.g}-${fila.e}-${fila.p}`), el('small', 'G-E-P')), el('div', { 'aria-label': `${fila.gf} goles a favor y ${fila.gc} en contra` }, el('b', `${fila.gf}:${fila.gc}`), el('small', 'GF : GC'))))
         : null,
       goleadores.length
         ? el('div.hoja-sec', el('h3', 'Goleadores'), el('ol.gol-lista', goleadores.map((g) => el('li', el('span.p', ''), el('span.n', el('b', g.nombre)), el('span.g', g.goles)))))
