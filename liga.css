@@ -330,9 +330,11 @@ body.en-inicio .barra-inf { display: none; }
 /* Cruces todavía sin equipos: más discretos para que destaquen los partidos reales */
 .duelo .eq.tbd, .hoja-duelo .eq.tbd { color: var(--suave); font-weight: 600; font-size: .9rem; }
 
-/* ---------- Modo oscuro (sigue el ajuste del móvil) ---------- */
+/* ---------- Modo oscuro ----------
+   Automático: sigue el ajuste del móvil, salvo que el usuario elija «Claro».
+   Manual: el botón de la cabecera pone data-tema="claro" u "oscuro" en <html>. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema="claro"]) {
     --tinta: #f2efeb;
     --suave: #b3ada6;
     --linea: #36322f;
@@ -359,6 +361,49 @@ body.en-inicio .barra-inf { display: none; }
     --z-rojo: #e0394d;
     color-scheme: dark;
   }
-  /* Los logotipos están pensados sobre blanco: se mantienen sus fondos claros */
-  .banner-torneo { box-shadow: none; }
+  :root:not([data-tema="claro"]) .banner-torneo { box-shadow: none; }
 }
+:root[data-tema="oscuro"] {
+  --tinta: #f2efeb;
+  --suave: #b3ada6;
+  --linea: #36322f;
+  --fondo: #121010;
+  --papel: #1f1c1b;
+  --sombra: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .35);
+  --relleno: #2e2a28;
+  --hover: #272321;
+  --rojo-suave: #3d1219;
+  --texto-rojo: #ff7d8b;
+  --texto-verde: #5fcf92;
+  --amarillo-suave: #3a3112;
+  --amarillo-tinta: #f2cc00;
+  --invertido: #f2efeb;
+  --sobre-invertido: #121010;
+  --fondo-barra: rgba(31, 28, 27, .97);
+  --asa: #4a4542;
+  --barra-gol: #e8495c;
+  /* Zonas: tonos propios para fondo oscuro (validados igual que los claros) */
+  --z-verde: #2a8c5a;
+  --z-verde-claro: #46a972;
+  --z-verde-oscuro: #1d784b;
+  --z-naranja: #c98200;
+  --z-rojo: #e0394d;
+  color-scheme: dark;
+}
+/* Los logotipos están pensados sobre blanco: se mantienen sus fondos claros */
+:root[data-tema="oscuro"] .banner-torneo { box-shadow: none; }
+
+/* Botón de tema: muestra solo el icono del modo actual */
+.tema-btn svg { display: none; }
+:root:not([data-tema]) .tema-btn .i-auto, :root[data-tema="claro"] .tema-btn .i-claro, :root[data-tema="oscuro"] .tema-btn .i-oscuro { display: block; }
+
+/* Aviso breve al cambiar de tema */
+.aviso-tema {
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 72px); z-index: 40; transform: translate(-50%, -8px);
+  background: var(--invertido); color: var(--sobre-invertido); font-weight: 700; font-size: .9rem;
+  padding: 8px 16px; border-radius: 99px; box-shadow: var(--sombra); opacity: 0; pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.aviso-tema.visible { opacity: 1; transform: translate(-50%, 0); }
+.aviso-tema:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .aviso-tema { transition: none; } }

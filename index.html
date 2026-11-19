@@ -8,6 +8,10 @@
   <title>Ligas FEDC · Resultados y clasificaciones</title>
   <link rel="icon" href="icono.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
+  <script>
+    /* Tema elegido por el usuario (claro u oscuro). Se aplica antes de pintar para evitar un destello. */
+    try { var t = localStorage.getItem('tema'); if (t === 'claro' || t === 'oscuro') document.documentElement.dataset.tema = t; } catch (e) {}
+  </script>
   <link rel="preload" href="fuentes/montserrat-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fuentes/montserrat-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="liga.css">
@@ -20,11 +24,18 @@
       </button>
       <span class="logo"><img src="logo.png" alt="FEDC · Federación Española de Deportes para Ciegos"></span>
       <div class="cab-titulo"><b id="titulo">Ligas nacionales</b><small id="temporada">Fútbol sala · Fútbol 5</small></div>
+      <button class="icono-btn tema-btn" id="tema" type="button" aria-label="Tema: automático. Cambiar a claro" title="Tema">
+        <svg class="i-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>
+        <svg class="i-claro" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg class="i-oscuro" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </button>
       <button class="icono-btn" id="recargar" type="button" aria-label="Actualizar datos" title="Actualizar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
   </header>
+
+  <div class="aviso-tema" id="aviso-tema" role="status" aria-live="polite"></div>
 
   <main id="vista" tabindex="-1" aria-live="polite"></main>
 
