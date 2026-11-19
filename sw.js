@@ -1,6 +1,6 @@
 /* Web de ligas: funciona sin conexión con los últimos datos descargados. */
-const CACHE = 'ligas-v11';
-const BASE = ['./', 'index.html', 'liga.css', 'liga.js', 'icono.svg', 'logo-f5.png', 'logo-fs1.png', 'logo-fs2.png', 'manifest.webmanifest', 'liga-core.js', 'logo.png', 'fuentes/montserrat-500.woff2', 'fuentes/montserrat-600.woff2', 'fuentes/montserrat-700.woff2', 'fuentes/montserrat-800.woff2'];
+const CACHE = 'ligas-v12';
+const BASE = ['./', 'index.html', 'liga.css', 'liga.js', 'icono-32.png', 'icono-180.png', 'icono-192.png', 'icono-512.png', 'icono-maskable-512.png', 'compartir.jpg', 'logo-f5.png', 'logo-fs1.png', 'logo-fs2.png', 'manifest.webmanifest', 'liga-core.js', 'logo.png', 'fuentes/montserrat-500.woff2', 'fuentes/montserrat-600.woff2', 'fuentes/montserrat-700.woff2', 'fuentes/montserrat-800.woff2'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) =>
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('ligas-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()))
