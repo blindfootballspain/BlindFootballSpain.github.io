@@ -489,6 +489,32 @@
     );
   }
 
+  /* ---------- Tema: automático → claro → oscuro ---------- */
+  const TEMAS = ['auto', 'claro', 'oscuro'];
+  const NOMBRE_TEMA = { auto: 'automático (como el móvil)', claro: 'claro', oscuro: 'oscuro' };
+  const temaActual = () => document.documentElement.dataset.tema || 'auto';
+  function rotularTema() {
+    const t = temaActual();
+    const sig = TEMAS[(TEMAS.indexOf(t) + 1) % TEMAS.length];
+    const b = $('#tema');
+    b.setAttribute('aria-label', `Tema: ${NOMBRE_TEMA[t]}. Cambiar a ${NOMBRE_TEMA[sig]}`);
+    b.title = 'Tema: ' + NOMBRE_TEMA[t];
+  }
+  let temporizadorAviso;
+  $('#tema').addEventListener('click', () => {
+    const t = TEMAS[(TEMAS.indexOf(temaActual()) + 1) % TEMAS.length];
+    if (t === 'auto') delete document.documentElement.dataset.tema;
+    else document.documentElement.dataset.tema = t;
+    t === 'auto' ? lsSet('tema', '') : lsSet('tema', t);
+    rotularTema();
+    const aviso = $('#aviso-tema');
+    aviso.textContent = 'Modo ' + NOMBRE_TEMA[t];
+    aviso.classList.add('visible');
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(() => aviso.classList.remove('visible'), 1800);
+  });
+  rotularTema();
+
   /* ---------- Arranque ---------- */
   $('#recargar').addEventListener('click', () => cargar(true));
   $('#volver').addEventListener('click', () => ir(null));
