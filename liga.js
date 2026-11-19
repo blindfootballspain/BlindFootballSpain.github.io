@@ -21,6 +21,23 @@
     return n;
   }
 
+  /* Accesibilidad: texto solo para lectores de pantalla y contenido solo visual */
+  const sr = (...h) => el('span.sr', ...h);
+  const visual = (tag, ...h) => {
+    const n = el(tag, ...h);
+    n.setAttribute('aria-hidden', 'true');
+    return n;
+  };
+  // Mensajes breves para VoiceOver y TalkBack (región de estado)
+  let temporizadorAnuncio;
+  const anunciar = (texto) => {
+    const a = $('#anuncio');
+    a.textContent = '';
+    clearTimeout(temporizadorAnuncio);
+    temporizadorAnuncio = setTimeout(() => (a.textContent = texto), 120);
+  };
+  const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
+
   const DATOS = document.documentElement.dataset.datos || '../data/liga.json';
   const S = { liga: null, torneo: null, sec: 'clasificacion', jornada: {}, filtroGol: {}, cargado: 0 };
   const SECCIONES = ['clasificacion', 'calendario', 'goleadores'];
@@ -35,6 +52,7 @@
   };
   const diaLargo = (iso) => (iso ? fecha(iso, { weekday: 'long', day: 'numeric', month: 'long' }) : 'Fecha por determinar');
   const diaCorto = (iso) => fecha(iso, { day: '2-digit', month: 'short' }).replace('.', '');
+  const diaMes = (iso) => (iso ? fecha(iso, { day: 'numeric', month: 'long' }) : 'fecha por determinar');
   const hoyIso = () => new Date().toISOString().slice(0, 10);
 
   const torneo = () => S.liga.torneos.find((t) => t.id === S.torneo) || S.liga.torneos[0];
@@ -52,9 +70,12 @@
       const r = await fetch(DATOS + '?t=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) throw new Error();
       const nueva = await r.json();
-      const cambio = !S.liga || nueva.actualizado !== S.liga.actualizado;
+      const primera = !S.liga;
+      const cambio = primera || nueva.actualizado !== S.liga.actualizado;
       S.liga = nueva;
       S.cargado = Date.now();
+      if (forzar) anunciar(cambio ? 'Datos actualizados' : 'No hay resultados nuevos');
+      else if (cambio && !primera) anunciar('Hay resultados nuevos. La página se ha actualizado');
       if (!cambio && !forzar) return;
     } catch {
       if (!S.liga) {
@@ -64,7 +85,7 @@
     } finally {
       btn.classList.remove('girando');
     }
-    $('#temporada').textContent = 'Temporada ' + (S.liga.temporada || '').replace('-', '/') + ' · FEDC';
+    $('#temporada').textContent = 'Temporada ' + (S.liga.temporada || '').replace('-', '/');
     leerRuta();
     pintar();
   }
@@ -82,6 +103,7 @@
     if (location.hash !== destino) history.pushState(null, '', t ? destino : location.pathname + location.search);
     S.torneo = t;
     S.sec = s || 'clasificacion';
+    S.enfocar = true;
     pintar();
     window.scrollTo({ top: 0 });
   }
@@ -98,6 +120,7 @@
       const v = $('#vista');
       v.replaceChildren();
       vistaInicio(v);
+      enfocarTitulo(v);
       return;
     }
     const t = torneo();
@@ -111,9 +134,23 @@
     document.title = `${titulos[S.sec]} · ${t.corto} · Ligas FEDC`;
     const v = $('#vista');
     v.replaceChildren();
-    if (LOGOS[t.id]) v.append(el('div.banner-torneo', el('img', { src: LOGOS[t.id], alt: 'Logotipo ' + t.nombre, width: 480, height: 245 })));
+    // Título de la vista para lectores de pantalla (el logotipo es decorativo: el título ya nombra la competición)
+    v.append(el('h1.sr', { tabindex: '-1' }, `${t.nombre}: ${titulos[S.sec].toLowerCase()}`));
+    if (LOGOS[t.id]) v.append(el('div.banner-torneo', el('img', { src: LOGOS[t.id], alt: '', width: 480, height: 245 })));
     ({ clasificacion: vistaClasificacion, calendario: vistaResultados, goleadores: vistaGoleadores })[S.sec](v, t);
     v.append(el('div.pie-datos', 'Datos de las actas oficiales · Actualizado ' + new Date(S.liga.actualizado).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })));
+    enfocarTitulo(v);
+  }
+  // Tras navegar, el lector de pantalla empieza a leer desde el título de la vista nueva
+  function enfocarTitulo(v) {
+    if (!S.enfocar) return;
+    S.enfocar = false;
+    const h = S.enfocarSel ? v.querySelector(S.enfocarSel) : v.querySelector('h1');
+    S.enfocarSel = null;
+    if (h) {
+      if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
+      h.focus({ preventScroll: true });
+    }
   }
   document.querySelectorAll('.barra-inf a').forEach((a) =>
     a.addEventListener('click', (e) => {
@@ -146,7 +183,7 @@
 
   function vistaInicio(v) {
     v.append(
-      el('h1.inicio-titulo', 'Elige una competición'),
+      el('h1.inicio-titulo', { tabindex: '-1' }, 'Elige una competición'),
       el(
         'nav.menu-torneos',
         { 'aria-label': 'Competiciones' },
@@ -196,7 +233,8 @@
       const filas = L.clasificacion(S.liga, t, g.id);
       const jugados = filas.some((f) => f.pj > 0);
       const tarjeta = el('section.tarjeta', { 'aria-labelledby': 'cl-' + (g.id === '*' ? 'general' : g.id) });
-      const ver = el('button.ver-mas', { type: 'button', 'aria-expanded': 'false' }, 'Ver todo');
+      // Solo cambia lo que se ve: el lector de pantalla ya recibe el detalle completo de cada equipo
+      const ver = el('button.ver-mas', { type: 'button', 'aria-expanded': 'false', 'aria-hidden': 'true', tabindex: '-1' }, 'Ver todo');
       ver.addEventListener('click', () => {
         const ab = tarjeta.classList.toggle('completa');
         ver.textContent = ab ? 'Ver menos' : 'Ver todo';
@@ -208,22 +246,24 @@
           'div.tabla-wrap',
           el(
             'table.clasif',
-            el('caption', { class: 'sr', hidden: true }, (conGrupos && !unica ? g.nombre + ' · ' : '') + 'Clasificación ' + t.nombre),
+            el('caption.sr', (conGrupos && !unica ? g.nombre + ', ' : '') + 'Clasificación ' + t.nombre + '. Pulsa un equipo para ver su ficha.'),
             el(
               'thead',
               el(
                 'tr',
-                el('th', { scope: 'col', title: 'Posición' }, '#'),
+                // Abreviaturas a la vista; nombre completo para el lector de pantalla
+                el('th', { scope: 'col', title: 'Posición' }, visual('span', '#'), sr('Posición')),
                 el('th.eq', { scope: 'col' }, 'Equipo'),
-                el('th', { scope: 'col', title: 'Partidos jugados' }, 'PJ'),
-                el('th.det', { scope: 'col', title: 'Ganados' }, 'G'),
-                el('th.det', { scope: 'col', title: 'Empatados' }, 'E'),
-                el('th.det', { scope: 'col', title: 'Perdidos' }, 'P'),
-                el('th.det', { scope: 'col', title: 'Goles a favor' }, 'GF'),
-                el('th.det', { scope: 'col', title: 'Goles en contra' }, 'GC'),
-                el('th', { scope: 'col', title: 'Diferencia de goles' }, 'DG'),
-                el('th', { scope: 'col', title: 'Puntos' }, 'Pts'),
-                el('th.det', { scope: 'col' }, 'Últimos')
+                el('th', { scope: 'col', title: 'Partidos jugados' }, visual('span', 'PJ'), sr('Partidos jugados')),
+                // Las columnas de detalle se ocultan en móvil: su contenido se lee junto al nombre del equipo
+                el('th.det', { scope: 'col', title: 'Ganados', 'aria-hidden': 'true' }, 'G'),
+                el('th.det', { scope: 'col', title: 'Empatados', 'aria-hidden': 'true' }, 'E'),
+                el('th.det', { scope: 'col', title: 'Perdidos', 'aria-hidden': 'true' }, 'P'),
+                el('th.det', { scope: 'col', title: 'Goles a favor', 'aria-hidden': 'true' }, 'GF'),
+                el('th.det', { scope: 'col', title: 'Goles en contra', 'aria-hidden': 'true' }, 'GC'),
+                el('th', { scope: 'col', title: 'Diferencia de goles' }, visual('span', 'DG'), sr('Diferencia de goles')),
+                el('th', { scope: 'col', title: 'Puntos' }, visual('span', 'Pts'), sr('Puntos')),
+                el('th.det', { scope: 'col', 'aria-hidden': 'true' }, 'Últimos')
               )
             ),
             el(
@@ -233,17 +273,25 @@
                 return el(
                   'tr' + (z ? '.' + z.clase : ''),
                   { onclick: () => fichaEquipo(t, f.id) },
-                  el('td.pos', el('span', { title: z ? z.texto : null }, f.pos), z ? el('span.sr', { hidden: true }, ' · ' + z.texto) : null),
-                  el('td.eq', el('button', { type: 'button', title: f.nombre }, f.corto, unica ? el('small.grupo-eq', { 'aria-label': 'Grupo ' + nombreGrupo(t, f.grupo) }, nombreGrupo(t, f.grupo)) : null)),
+                  el('td.pos', visual('span', { title: z ? z.texto : null }, f.pos), sr(f.pos + 'º' + (z ? '. ' + z.texto : ''))),
+                  el(
+                    'td.eq',
+                    el('button', { type: 'button', title: f.nombre }, f.corto, unica ? [visual('small.grupo-eq', nombreGrupo(t, f.grupo)), sr(', grupo ' + nombreGrupo(t, f.grupo))] : null),
+                    sr(
+                      `. ${plural(f.g, 'ganado', 'ganados')}, ${plural(f.e, 'empatado', 'empatados')}, ${plural(f.p, 'perdido', 'perdidos')}. ` +
+                        `${plural(f.gf, 'gol', 'goles')} a favor y ${f.gc} en contra.` +
+                        (f.forma.length ? ' Últimos resultados: ' + f.forma.map((x) => NOMBRE_RES[x]).join(', ') + '.' : '')
+                    )
+                  ),
                   el('td', f.pj),
-                  el('td.det', f.g),
-                  el('td.det', f.e),
-                  el('td.det', f.p),
-                  el('td.det', f.gf),
-                  el('td.det', f.gc),
+                  el('td.det', { 'aria-hidden': 'true' }, f.g),
+                  el('td.det', { 'aria-hidden': 'true' }, f.e),
+                  el('td.det', { 'aria-hidden': 'true' }, f.p),
+                  el('td.det', { 'aria-hidden': 'true' }, f.gf),
+                  el('td.det', { 'aria-hidden': 'true' }, f.gc),
                   el('td', f.dg > 0 ? '+' + f.dg : f.dg),
                   el('td.pts', f.pts),
-                  el('td.det', forma(f.forma))
+                  el('td.det', { 'aria-hidden': 'true' }, forma(f.forma))
                 );
               })
             )
@@ -273,7 +321,8 @@
     v.append(el('p.leyenda', 'Victoria 3 puntos, empate 1. Empates a puntos: enfrentamientos directos, diferencia de goles y goles a favor.'));
   }
 
-  const forma = (lista) => el('span.forma', { 'aria-label': 'Últimos resultados: ' + lista.map((x) => ({ V: 'victoria', E: 'empate', D: 'derrota' })[x]).join(', ') }, lista.map((x) => el('i.' + x, { 'aria-hidden': 'true' }, x)));
+  const NOMBRE_RES = { V: 'victoria', E: 'empate', D: 'derrota' };
+  const forma = (lista) => el('span.forma', lista.map((x) => el('i.' + x, { 'aria-hidden': 'true' }, x)), sr(lista.map((x) => NOMBRE_RES[x]).join(', ')));
 
   /* ---------- Resultados ---------- */
   function jornadaPorDefecto(t) {
@@ -294,19 +343,22 @@
     const j = t.jornadas[idx];
     const cambiar = (k) => {
       S.jornada[t.id] = t.jornadas[k].n;
+      S.enfocar = true;
+      S.enfocarSel = '#titulo-jornada';
       pintar();
     };
     const lista = el(
       'div.lista-jornadas',
-      { role: 'tablist', 'aria-label': 'Jornadas' },
+      { role: 'group', 'aria-label': 'Jornadas' },
       t.jornadas.map((x, k) => {
         const hecha = x.partidos.length && x.partidos.every((p) => S.liga.resultados[p.id]);
         const corto = x.eliminatoria ? x.nombre.replace('Cuartos de final', 'Cuartos') : 'J' + x.n;
         return el(
           'button' + (hecha ? '.hecha' : ''),
-          { type: 'button', role: 'tab', 'aria-current': String(k === idx), 'aria-label': x.nombre, onclick: () => cambiar(k) },
-          corto,
-          el('small', diaCorto(x.partidos[0] && x.partidos[0].fecha) || '—')
+          { type: 'button', 'aria-current': k === idx ? 'true' : null, onclick: () => cambiar(k) },
+          visual('span', corto),
+          visual('small', diaCorto(x.partidos[0] && x.partidos[0].fecha) || '—'),
+          sr(`${x.nombre}, ${diaMes(x.partidos[0] && x.partidos[0].fecha)}${hecha ? ', jugada' : ''}`)
         );
       })
     );
@@ -317,7 +369,7 @@
         lista,
         el('button.flecha', { type: 'button', 'aria-label': 'Jornada siguiente', disabled: idx === t.jornadas.length - 1 || null, onclick: () => cambiar(idx + 1) }, '›')
       ),
-      el('h2', { style: 'font-size:1.15rem;margin:4px 4px 0' }, j.nombre)
+      el('h2#titulo-jornada', { style: 'font-size:1.15rem;margin:4px 4px 0', tabindex: '-1' }, j.nombre)
     );
     requestAnimationFrame(() => {
       const b = lista.children[idx];
@@ -332,6 +384,7 @@
         v.append(el('h3.dia', diaLargo(d)));
         porDia[d].forEach((p) => v.append(tarjetaPartido(t, p, j)));
       });
+    if (!j.partidos.length) v.append(el('p.descansa', 'No hay partidos en esta jornada.'));
     if (j.descansan && j.descansan.length) v.append(el('p.descansa', 'Descansa: ' + j.descansan.map((d) => nombreEq(t, d.equipo)).join(' · ')));
   }
 
@@ -339,18 +392,38 @@
     const r = S.liga.resultados[p.id];
     const ok = L.jugado(r);
     let centro;
-    if (ok) centro = el('div.marcador', { 'aria-label': `Resultado ${r.gl} a ${r.gv}` }, `${r.gl} – ${r.gv}`);
+    if (ok) centro = el('div.marcador', `${r.gl} – ${r.gv}`);
     else if (r && r.estado) centro = el('div.marcador.estado', r.estado);
     else centro = el('div.marcador.pend', p.hora || 'vs');
     const cl = (a, b) => (!ok ? '' : a > b ? '.gana' : a < b ? '.pierde' : '');
     const grupo = sinGrupo ? '' : grupoDe(t, p.comp);
     const lugar = [p.instalacion, p.sede].filter(Boolean).join(' · ');
+    const meta = grupo || lugar || (r && r.nota) ? el('div.meta', { 'aria-hidden': 'true' }, grupo ? el('span.chip', grupo) : null, el('span.lugar', lugar), r && r.nota ? el('span.chip.chip-amarillo', 'Nota') : null) : null;
+    // Lo que oye el lector de pantalla: equipos y resultado primero, después el lugar
+    const resumen = [
+      resumenDuelo(t, p, r),
+      sinGrupo ? '' : grupo,
+      lugar.replace(' · ', ', '),
+      r && r.nota ? 'Tiene una nota de la organización' : '',
+    ]
+      .filter(Boolean)
+      .map((x) => x.replace(/\.$/, ''))
+      .join('. ') + '.';
     return el(
       'button.partido',
       { type: 'button', onclick: () => fichaPartido(t, p, j) },
-      grupo || lugar || (r && r.nota) ? el('div.meta', grupo ? el('span.chip', grupo) : null, el('span.lugar', lugar), r && r.nota ? el('span.chip.chip-amarillo', 'Nota') : null) : null,
-      el('div.duelo', el('span.eq.l' + cl(r && r.gl, r && r.gv) + (p.local ? '' : '.tbd'), nombreEq(t, p.local)), centro, el('span.eq' + cl(r && r.gv, r && r.gl) + (p.visitante ? '' : '.tbd'), nombreEq(t, p.visitante)))
+      sr(resumen),
+      meta,
+      el('div.duelo', { 'aria-hidden': 'true' }, el('span.eq.l' + cl(r && r.gl, r && r.gv) + (p.local ? '' : '.tbd'), nombreEq(t, p.local)), centro, el('span.eq' + cl(r && r.gv, r && r.gl) + (p.visitante ? '' : '.tbd'), nombreEq(t, p.visitante)))
     );
+  }
+
+  // «Mediterrani 5, Granada Luis Braille 3» · «Real Betis ONCE contra Barcelona F.C., a las 12:00»
+  function resumenDuelo(t, p, r) {
+    const l = nombreEq(t, p.local), v = nombreEq(t, p.visitante);
+    if (L.jugado(r)) return `${l} ${r.gl}, ${v} ${r.gv}`;
+    if (r && r.estado) return `${l} contra ${v}, partido ${r.estado}`;
+    return `${l} contra ${v}` + (p.hora ? ', a las ' + p.hora : '');
   }
 
   /* ---------- Goleadores ---------- */
@@ -381,14 +454,14 @@
           lista.map((g) =>
             el(
               'li' + (g.pos === 1 ? '.top' : ''),
-              el('span.p', g.pos === 1 ? el('span', '1') : g.pos),
+              el('span.p', visual('span', g.pos), sr(g.pos + 'º.')),
               el(
                 'span.n',
                 el('b', g.nombre),
                 el('small', nombreEq(t, g.equipo) + ' · ' + g.partidos + (g.partidos === 1 ? ' partido con gol' : ' partidos con gol')),
                 el('span.gol-barra', { 'aria-hidden': 'true' }, el('i', { style: `width:${Math.round((g.goles / maximo) * 100)}%` }))
               ),
-              el('span.g', { 'aria-label': g.goles + (g.goles === 1 ? ' gol' : ' goles') }, g.goles)
+              el('span.g', visual('span', g.goles), sr('. ' + plural(g.goles, 'gol', 'goles')))
             )
           )
         )
@@ -414,14 +487,17 @@
     const lista = (eq, pp) =>
       el(
         'ul',
-        golesDe(eq).map((g) => el('li', g.nombre, g.goles > 1 ? el('span.x', ' ×' + g.goles) : null)),
+        { 'aria-label': 'Goles de ' + nombreEq(t, eq) },
+        golesDe(eq).map((g) => el('li', g.nombre, g.goles > 1 ? [visual('span.x', ' ×' + g.goles), sr(', ' + g.goles + ' goles')] : null)),
         pp ? el('li.pp', pp + (pp === 1 ? ' gol en propia puerta' : ' goles en propia puerta')) : null
       );
     const grupo = grupoDe(t, p.comp);
     abrirHoja(
       el('div.hoja-cab', el('small', [t.corto, grupo, j.nombre].filter(Boolean).join(' · ')), el('h2#hoja-titulo', ok ? 'Resultado final' : r && r.estado ? 'Partido ' + r.estado : 'Próximo partido')),
+      el('p.sr', resumenDuelo(t, p, r).replace(/\.$/, '') + '.'),
       el(
         'div.hoja-duelo',
+        { 'aria-hidden': 'true' },
         el('div.eq' + (p.local ? '' : '.tbd'), nombreEq(t, p.local)),
         ok ? el('div.marcador', `${r.gl} – ${r.gv}`) : el('div.marcador.pend', p.hora || 'vs'),
         el('div.eq' + (p.visitante ? '' : '.tbd'), nombreEq(t, p.visitante))
@@ -455,10 +531,14 @@
     abrirHoja(
       el('div.hoja-cab', el('small', [t.corto, grupo].filter(Boolean).join(' · ')), el('h2#hoja-titulo', e.nombre)),
       fila
-        ? el('div.hoja-sec', el('div.stats', el('div', el('b', fila.pos + 'º'), el('small', 'Posición')), el('div', el('b', fila.pts), el('small', 'Puntos')), el('div', el('b', `${fila.g}-${fila.e}-${fila.p}`), el('small', 'G-E-P')), el('div', { 'aria-label': `${fila.gf} goles a favor y ${fila.gc} en contra` }, el('b', `${fila.gf}:${fila.gc}`), el('small', 'GF : GC'))))
+        ? el(
+            'div.hoja-sec',
+            el('p.sr', `${fila.pos}º en la clasificación con ${plural(fila.pts, 'punto', 'puntos')}. ${plural(fila.g, 'ganado', 'ganados')}, ${plural(fila.e, 'empatado', 'empatados')} y ${plural(fila.p, 'perdido', 'perdidos')}. ${plural(fila.gf, 'gol', 'goles')} a favor y ${fila.gc} en contra.`),
+            visual('div.stats', el('div', el('b', fila.pos + 'º'), el('small', 'Posición')), el('div', el('b', fila.pts), el('small', 'Puntos')), el('div', el('b', `${fila.g}-${fila.e}-${fila.p}`), el('small', 'G-E-P')), el('div', el('b', `${fila.gf}:${fila.gc}`), el('small', 'GF : GC')))
+          )
         : null,
       goleadores.length
-        ? el('div.hoja-sec', el('h3', 'Goleadores'), el('ol.gol-lista', goleadores.map((g) => el('li', el('span.p', ''), el('span.n', el('b', g.nombre)), el('span.g', g.goles)))))
+        ? el('div.hoja-sec', el('h3', 'Goleadores'), el('ol.gol-lista', goleadores.map((g) => el('li', el('span.p', ''), el('span.n', el('b', g.nombre)), el('span.g', visual('span', g.goles), sr('. ' + plural(g.goles, 'gol', 'goles')))))))
         : null,
       el(
         'div.hoja-sec',
@@ -470,17 +550,20 @@
             const ok = L.jugado(r);
             const local = p.local === id;
             const rival = nombreEq(t, local ? p.visitante : p.local);
-            let res = null;
+            let res = null, resTexto = r && r.estado ? 'Partido ' + r.estado : p.hora ? 'A las ' + p.hora : 'Pendiente';
             if (ok) {
               const a = local ? r.gl : r.gv, b = local ? r.gv : r.gl;
-              res = forma([a > b ? 'V' : a < b ? 'D' : 'E']);
+              res = visual('span', forma([a > b ? 'V' : a < b ? 'D' : 'E']));
+              resTexto = `${a > b ? 'Victoria' : a < b ? 'Derrota' : 'Empate'}, ${a} a ${b}`;
             }
+            const cuando = (j.eliminatoria ? j.nombre : 'Jornada ' + j.n) + ', ' + diaMes(p.fecha);
             return el(
               'button',
               { type: 'button', onclick: () => fichaPartido(t, p, j) },
-              el('span.f', j.eliminatoria ? j.nombre.split(' ')[0] : 'J' + j.n, el('br'), diaCorto(p.fecha)),
-              el('span', (local ? 'vs ' : 'en ') + rival),
-              el('span.r', ok ? `${r.gl} – ${r.gv}` : r && r.estado ? r.estado : p.hora || ''),
+              sr(`${cuando}. ${local ? 'En casa contra' : 'Fuera, en casa de'} ${rival.replace(/\.$/, '')}. ${resTexto}.`),
+              visual('span.f', j.eliminatoria ? j.nombre.split(' ')[0] : 'J' + j.n, el('br'), diaCorto(p.fecha)),
+              visual('span', (local ? 'vs ' : 'en ') + rival),
+              visual('span.r', ok ? `${r.gl} – ${r.gv}` : r && r.estado ? r.estado : p.hora || ''),
               res || el('span')
             );
           })
