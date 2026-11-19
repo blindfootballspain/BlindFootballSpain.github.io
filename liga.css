@@ -291,10 +291,12 @@ body.en-inicio .barra-inf { display: none; }
 @media (min-width: 700px) { .menu-torneo { padding-right: 64px; } }
 /* Dentro de una competición, en móvil: flecha + logo FEDC + título, todo en una línea */
 @media (max-width: 560px) {
-  body:not(.en-inicio) .cab-fila { gap: 8px; padding-left: 12px; padding-right: 12px; }
-  body:not(.en-inicio) .cab .logo { padding: 3px 6px; }
-  body:not(.en-inicio) .cab .logo img { height: 28px; }
-  body:not(.en-inicio) .cab .icono-btn { width: 38px; height: 38px; }
+  /* Cabecera compacta en móvil (también en el inicio, para que quepa el botón de tema) */
+  .cab-fila { gap: 8px; padding-left: 12px; padding-right: 12px; }
+  .cab .logo { padding: 3px 6px; }
+  .cab .logo img { height: 28px; }
+  .cab .icono-btn { width: 38px; height: 38px; }
+  .cab-titulo b, .cab-titulo small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body:not(.en-inicio) .cab-titulo small { display: none; }
 }
 
@@ -407,3 +409,17 @@ body.en-inicio .barra-inf { display: none; }
 .aviso-tema.visible { opacity: 1; transform: translate(-50%, 0); }
 .aviso-tema:empty { display: none; }
 @media (prefers-reduced-motion: reduce) { .aviso-tema { transition: none; } }
+
+/* ---------- Accesibilidad ---------- */
+/* Texto solo para lectores de pantalla (VoiceOver, TalkBack) */
+.sr {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+/* Los títulos que reciben el foco al navegar no muestran el recuadro */
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
+/* iPhone: respeta el tamaño de texto elegido en Ajustes › Accesibilidad */
+@supports (font: -apple-system-body) {
+  html { font: -apple-system-body; }
+  body { font-size: 1rem; }
+}
