@@ -1,3 +1,9 @@
+/* Tipografía: Montserrat (licencia SIL OFL, ver fuentes/OFL.txt), guardada en la web para que funcione sin conexión */
+@font-face { font-family: 'Montserrat'; src: url('fuentes/montserrat-500.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Montserrat'; src: url('fuentes/montserrat-600.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Montserrat'; src: url('fuentes/montserrat-700.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Montserrat'; src: url('fuentes/montserrat-800.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+
 :root {
   --rojo: #b0001e;
   --rojo-osc: #7a0015;
@@ -37,7 +43,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; min-height: 100vh;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px; font-weight: 500; line-height: 1.4;
   color: var(--tinta); background: var(--fondo);
   padding-bottom: calc(var(--alto-inf) + env(safe-area-inset-bottom) + 12px);
@@ -62,7 +68,7 @@ h1, h2, h3 { margin: 0; line-height: 1.2; font-weight: 800; }
 .logo img { height: 34px; width: auto; display: block; }
 .cab-titulo { display: grid; flex: 1; min-width: 0; line-height: 1.15; }
 .cab-titulo b { font-size: 1.12rem; font-weight: 800; }
-.cab-titulo small { font-size: .8rem; opacity: .9; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cab-titulo small { font-size: .76rem; opacity: .9; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icono-btn {
   width: 42px; height: 42px; border-radius: 50%; border: 0; flex: none;
   background: rgba(255, 255, 255, .16); color: #fff; display: grid; place-items: center; cursor: pointer;
